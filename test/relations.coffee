@@ -5,7 +5,7 @@ Fields = require '../src/fields'
 Relations = require '../src/relations'
 
 {StringField, IntField, EmailField} = Fields
-{HasMany, BelongsTo} = Relations
+{Relation, HasMany, BelongsTo} = Relations
 
 describe "Relations", ->
     this.timeout 3000
@@ -44,6 +44,13 @@ describe "Relations", ->
             ]
 
         afterEach -> init.truncate 'users', 'photos'
+
+        it 'uses id and type suffixes', co ->
+            Relation.prototype.idSuffix = "ID"
+            Relation.prototype.typeSuffix = "Id"
+            h = HasMany("Photo")
+            h.getIDName().should.be.equal "photoID"
+            h.getTypeName().should.be.equal "photoId"
 
         it 'does something relevant', co ->
             [alice, _] = yield fixtures.alice()

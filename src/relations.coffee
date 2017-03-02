@@ -57,6 +57,8 @@ pushField = (schema, name, factory) ->
 
 class Relation
     @multiple: false
+    idSuffix: "_id"
+    typeSuffix: "_type"
 
     constructor: (model, options = {}) ->
         return new Relation(arguments...) unless this instanceof Relation
@@ -64,6 +66,8 @@ class Relation
         @options = options
         @name = @_deduceName(@relatedModel)
 
+    getIDName:   (n) -> "#{n or @_relatedModelName().toLowerCase()}#{@idSuffix}"
+    getTypeName: (n) -> "#{n or @_relatedModelName().toLowerCase()}#{@typeSuffix}"
     pluginOption: (name, defaultVal) -> @model.__bookshelf_schema_options[name] or defaultVal
     option: (name, pluginOptionName, defaultVal) ->
         if arguments.length is 2
@@ -217,7 +221,7 @@ class BelongsTo extends Relation
 
     contributeToSchema: (schema) ->
         super
-        foreignKey = @options.foreignKey or "#{@_relatedModelName().toLowerCase()}_id"
+        foreignKey = @options.foreignKey or @getIDName()
         pushField schema, foreignKey, -> IntField foreignKey
 
     @injectedMethods: require './relations/belongs_to'
@@ -356,8 +360,8 @@ class MorphTo extends Relation
             idName = @options.polymorphicName[0]
             typeName = @options.polymorphicName[1]
         else
-            idName = "#{@polymorphicName}_id"
-            typeName = "#{@polymorphicName}_type"
+            idName = @getIDName(@polymorphicName)
+            typeName = @getTypeName(@polymorphicName)
 
         pushField schema, idName, -> IntField idName
         pushField schema, typeName, -> StringField typeName
@@ -366,11 +370,11 @@ class MorphTo extends Relation
         polymorphicId = if @options.columnNames
             @options.columnNames[0]
         else
-            "#{@polymorphicName}_id"
+            @getIDName(@polymorphicName)
         polymorphicType = if @options.columnNames
             @options.columnNames[1]
         else
-            "#{@polymorphicName}_type"
+            @getTypeName(@polymorphicName)
 
         if model.get(polymorphicId)? \
         and model.get(polymorphicType)?
@@ -394,3 +398,4 @@ module.exports =
     MorphOne: MorphOne
     MorphMany: MorphMany
     MorphTo: MorphTo
+    Relation: Relation

@@ -88,6 +88,15 @@ Actual relation name (the name of generated function) is generated from one of t
 Additionally if name isn't passed as an option relation name is pluralized for the multiple
 relations and its first letter is converted to lower case.
 
+Relation ID overrides
+-------------
+
+By default, the foreign key is named relation\_id but that can be overridden.
+The defaults are:
+
+    Relation.prototype.idSuffix   = "_id"
+    Relation.prototype.typeSuffix = "_type"
+
 Accessor helper methods
 -----------------------
 
