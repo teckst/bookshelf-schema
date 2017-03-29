@@ -31,10 +31,10 @@ initDb = ->
 
     db = Bookshelf knex
 
-init = ->
+init = (pluginOptions) ->
     return db if db?
     db = initDb()
-    db.plugin Schema()
+    db.plugin Schema(pluginOptions)
     db
 
 truncate = co (tables...) -> yield (db.knex(table).truncate() for table in tables)
@@ -63,6 +63,7 @@ photos = co ->
         table.increments('id').primary()
         table.string 'filename', 255
         table.integer 'user_id'
+        table.string 'user_name', 255
 
 profiles = co ->
     init() unless db

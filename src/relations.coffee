@@ -50,10 +50,10 @@
 {Field, IntField, StringField} = require './fields'
 {Fulfilled, Rejected, promiseFinally, values, pluck, upperFirst, lowerFirst} = require './utils'
 
-pushField = (schema, name, factory) ->
+pushField = (schema, name, field) ->
     for f in schema when f instanceof Field
         return if f.name is name
-    schema.push factory()
+    schema.push field
 
 class Relation
     @multiple: false
@@ -149,7 +149,9 @@ class Relation
         interim = @options.through
         throughForeignKey = @options.throughForeignKey
         otherKey = @options.otherKey
-        -> builder.call(this).through(interim, throughForeignKey, otherKey)
+        throughForeignKeyTarget = @options.throughForeignKeyTarget
+        otherKeyTarget = @options.otherKeyTarget
+        -> builder.call(this).through(interim, throughForeignKey, otherKey, throughForeignKeyTarget, otherKeyTarget)
 
     _applyQuery: (builder) ->
         return builder unless @options.query
@@ -200,7 +202,7 @@ class Relation
         else
             lowerFirst(@_relatedModelName())
 
-    _deduceAccessorName: -> "#{@pluginOption('accessorPrefix', '$')}#{@name}"
+    _deduceAccessorName: -> "#{@option('accessorPrefix', 'relationsAccessorPrefix', '$')}#{@name}"
 
 class HasOne extends Relation
     constructor: (model, options = {}) ->
@@ -212,7 +214,8 @@ class HasOne extends Relation
     _createRelation: ->
         related = @relatedModel
         foreignKey = @options.foreignKey
-        -> @hasOne related, foreignKey
+        foreignKeyTarget = @options.foreignKeyTarget
+        -> @hasOne related, foreignKey, foreignKeyTarget
 
 class BelongsTo extends Relation
     constructor: (model, options = {}) ->
@@ -222,7 +225,7 @@ class BelongsTo extends Relation
     contributeToSchema: (schema) ->
         super
         foreignKey = @options.foreignKey or @getIDName()
-        pushField schema, foreignKey, -> IntField foreignKey
+        pushField schema, foreignKey, IntField(foreignKey)
 
     @injectedMethods: require './relations/belongs_to'
 
@@ -231,7 +234,8 @@ class BelongsTo extends Relation
     _createRelation: ->
         related = @relatedModel
         foreignKey = @options.foreignKey
-        -> @belongsTo related, foreignKey
+        foreignKeyTarget = @options.foreignKeyTarget
+        -> @belongsTo related, foreignKey, foreignKeyTarget
 
     # Patch returned relations joinClauses and whereClauses
     # TODO: apply withPivot
@@ -277,7 +281,8 @@ class HasMany extends Relation
     _createRelation: ->
         related = @relatedModel
         foreignKey = @options.foreignKey
-        -> @hasMany related, foreignKey
+        foreignKeyTarget = @options.foreignKeyTarget
+        -> @hasMany related, foreignKey, foreignKeyTarget
 
 class BelongsToMany extends Relation
     @multiple: true
@@ -304,7 +309,9 @@ class BelongsToMany extends Relation
         table = @options.table
         foreignKey = @options.foreignKey
         otherKey = @options.otherKey
-        -> @belongsToMany related, table, foreignKey, otherKey
+        foreignKeyTarget = @options.foreignKeyTarget
+        otherKeyTarget = @options.otherKeyTarget
+        -> @belongsToMany related, table, foreignKey, otherKey, foreignKeyTarget, otherKeyTarget
 
 class MorphOne extends Relation
     constructor: (model, polymorphicName, options = {}) ->
@@ -363,8 +370,8 @@ class MorphTo extends Relation
             idName = @getIDName(@polymorphicName)
             typeName = @getTypeName(@polymorphicName)
 
-        pushField schema, idName, -> IntField idName
-        pushField schema, typeName, -> StringField typeName
+        pushField schema, idName, IntField(idName)
+        pushField schema, typeName, StringField(typeName)
 
     _destroyReject: (model, options) ->
         polymorphicId = if @options.columnNames
